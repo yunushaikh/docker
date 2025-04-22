@@ -1,0 +1,84 @@
+version: '3.8'
+
+networks:
+  orchest:
+    driver: bridge
+
+services:
+
+  mysql57-primary:
+    image: percona:5.7
+    container_name: yunus-shaikh-mysql57-primary
+    environment:
+      MYSQL_ROOT_PASSWORD: rootpass
+    command: >
+      --server-id=1
+      --log-bin=mysql-bin
+      --gtid-mode=ON
+      --enforce-gtid-consistency=ON
+      --log-slave-updates=ON
+      --binlog-format=ROW
+      --binlog-checksum=NONE
+      --log-bin-trust-function-creators=1
+    volumes:
+      - mysql57-primary-data:/var/lib/mysql
+      - ./init_primary.sql:/docker-entrypoint-initdb.d/init.sql
+    networks:
+      - orchest
+
+  mysql57-replica:
+    image: percona:5.7
+    container_name: yunus-shaikh-mysql57-replica
+    environment:
+      MYSQL_ROOT_PASSWORD: rootpass
+    depends_on:
+      - mysql57-primary
+    command: >
+      --server-id=2
+      --log-bin=mysql-bin
+      --gtid-mode=ON
+      --enforce-gtid-consistency=ON
+      --log-slave-updates=ON
+      --read-only=ON
+      --binlog-format=ROW
+      --binlog-checksum=NONE
+    volumes:
+      - mysql57-replica-data:/var/lib/mysql
+    networks:
+      - orchest
+
+  mysql80-replica:
+    image: percona:8.0
+    container_name: yunus-shaikh-mysql80-replica
+    environment:
+      MYSQL_ROOT_PASSWORD: rootpass
+    depends_on:
+      - mysql57-primary
+    command: >
+      --server-id=3
+      --log-bin=mysql-bin
+      --gtid-mode=ON
+      --enforce-gtid-consistency=ON
+      --log-slave-updates=ON
+      --read-only=ON
+      --binlog-format=ROW
+    volumes:
+      - mysql80-replica-data:/var/lib/mysql
+    networks:
+      - orchest
+
+  orchestrator:
+    image: openarkcode/orchestrator
+    container_name: yunus-shaikh-orchestrator
+    environment:
+      - ORCHESTRATOR_API_HTTP=8080
+    ports:
+      - "33033:3000"
+    networks:
+      - orchest
+
+volumes:
+  mysql57-primary-data:
+  mysql57-replica-data:
+  mysql80-replica-data:
+
