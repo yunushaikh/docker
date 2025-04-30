@@ -1,0 +1,85 @@
+version: '3.8'
+
+services:
+  yunus.shaikh-mysql-source:
+    image: percona:8.0
+    container_name: yunus.shaikh-mysql-source
+    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD: rootpass
+    ports:
+      - "18001:3306"
+    command: [
+      "--server-id=1",
+      "--gtid-mode=ON",
+      "--enforce-gtid-consistency=ON",
+      "--log-bin=mysql-bin",
+      "--binlog-format=ROW",
+      "--default-authentication-plugin=mysql_native_password",
+      "--binlog_expire_logs_seconds=3600"
+    ]
+    volumes:
+      - source_data:/var/lib/mysql
+
+  yunus.shaikh-mysql-replica:
+    image: percona:8.0
+    container_name: yunus.shaikh-mysql-replica
+    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD: rootpass
+    ports:
+      - "18002:3306"
+    command: [
+      "--server-id=2",
+      "--gtid-mode=ON",
+      "--enforce-gtid-consistency=ON",
+      "--log-bin=mysql-bin",
+      "--relay-log=relay-bin",
+      "--read-only=ON",
+      "--skip-slave-start",
+      "--default-authentication-plugin=mysql_native_password"
+    ]
+    volumes:
+      - replica_data:/var/lib/mysql
+    depends_on:
+      - yunus.shaikh-mysql-source
+
+  yunus.shaikh-init-replica:
+    image: percona:8.0
+    container_name: yunus.shaikh-init-replica
+    depends_on:
+      - yunus.shaikh-mysql-source
+      - yunus.shaikh-mysql-replica
+    entrypoint: >
+      bash -c "
+      echo 'Waiting for MySQL Source to be ready...';
+      until mysql -h yunus.shaikh-mysql-source -P3306 -uroot -prootpass -e 'SELECT 1'; do sleep 2; done;
+
+      echo 'Getting GTID_EXECUTED from source...';
+      GTID=$(mysql -h yunus.shaikh-mysql-source -P3306 -uroot -prootpass -ANe 'SELECT @@GLOBAL.GTID_EXECUTED');
+      echo 'Source GTID_EXECUTED: ' \$GTID;
+
+      echo 'Waiting for MySQL Replica to be ready...';
+      until mysql -h yunus.shaikh-mysql-replica -P3306 -uroot -prootpass -e 'SELECT 1'; do sleep 2; done;
+
+      echo 'Setting gtid_purged on replica...';
+      mysql -h yunus.shaikh-mysql-replica -P3306 -uroot -prootpass -e \"RESET MASTER;\";
+      mysql -h yunus.shaikh-mysql-replica -P3306 -uroot -prootpass -e \"SET GLOBAL gtid_purged='\$GTID';\";
+
+      echo 'Configuring replication...';
+      mysql -h yunus.shaikh-mysql-replica -P3306 -uroot -prootpass -e \"
+        CHANGE REPLICATION SOURCE TO
+          SOURCE_HOST='yunus.shaikh-mysql-source',
+          SOURCE_PORT=3306,
+          SOURCE_USER='root',
+          SOURCE_PASSWORD='rootpass',
+          SOURCE_AUTO_POSITION=1;
+        START REPLICA;
+      \";
+      echo 'Replica configured.'
+      "
+
+volumes:
+  source_data:
+  replica_data:
+
