@@ -1,0 +1,55 @@
+version: '3.8'
+
+services:
+  pmm-server:
+    image: percona/pmm-server:2.44.0
+    container_name: yunus.shaikh-pmm-server
+    restart: always
+    ports:
+      - "18080:80"   # PMM Server HTTP port changed to 18080
+      - "443:443"
+    environment:
+      - PERCONA_TEST=YES
+    volumes:
+      - pmm-data:/srv
+
+  mysql:
+    image: percona/percona-server:8.0
+    container_name: yunus.shaikh-percona-mysql
+    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD: rootpass
+    ports:
+      - "32060:3306"
+    command: --default-authentication-plugin=mysql_native_password
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-uroot", "-prootpass"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  pmm-client:
+    image: percona/pmm-client:2.44.0
+    container_name: yunus.shaikh-pmm-client
+    depends_on:
+      mysql:
+        condition: service_healthy
+    environment:
+      PMM_AGENT_SERVER_ADDRESS: yunus.shaikh-pmm-server:443
+      PMM_AGENT_SERVER_USERNAME: admin
+      PMM_AGENT_SERVER_PASSWORD: admin
+      PMM_AGENT_SERVER_INSECURE_TLS: 1
+      PMM_AGENT_SETUP: 1
+      PMM_AGENT_CONFIG_FILE: config/pmm-agent.yaml
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    networks:
+      - default
+
+volumes:
+  pmm-data:
+
+networks:
+  default:
+    driver: bridge
+

@@ -1,0 +1,6 @@
+docker compose up -d
+
+pmm-admin add mysql --query-source=perfschema --username=root --password=rootpass --host=yunus.shaikh-percona-mysql
+
+
+
