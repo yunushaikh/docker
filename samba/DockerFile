@@ -1,0 +1,13 @@
+FROM ubuntu:22.04
+ENV DOMAIN example
+ENV REALM example.net
+ENV ADMIN_PASSWORD PerconaLDAPTest2024
+ENV REQUIRE_TLS yes
+COPY entrypoint.sh /entrypoint.sh
+RUN \
+  apt update; \
+  apt -y upgrade; \
+  apt -y install samba net-tools winbind bind9-dnsutils vim iputils-ping ldap-utils; \
+  chmod +x /entrypoint.sh
+EXPOSE 53 389 636 137 138 139 445
+ENTRYPOINT ["/entrypoint.sh"]

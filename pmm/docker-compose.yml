@@ -2,12 +2,12 @@ version: '3.8'
 
 services:
   pmm-server:
-    image: percona/pmm-server:2.44.0
+    image: percona/pmm-server:latest
     container_name: yunus.shaikh-pmm-server
     restart: always
     ports:
       - "18080:80"   # PMM Server HTTP port changed to 18080
-      - "443:443"
+      - "443:8443"
     environment:
       - PERCONA_TEST=YES
     volumes:
@@ -29,7 +29,7 @@ services:
       retries: 10
 
   pmm-client:
-    image: percona/pmm-client:2.44.0
+    image: percona/pmm-client:latest
     container_name: yunus.shaikh-pmm-client
     depends_on:
       mysql:

@@ -6,6 +6,9 @@ This code is to setup the docker instance which will deploy
 
 Replication binary logs and GTID will be enabled. Replication has to be configured manually after connecting each replica,
 
+
+
+
 docker exec -it yunus-shaikh-mysql57-replica mysql -uroot -prootpass
 
 CHANGE MASTER TO
@@ -28,3 +31,6 @@ CHANGE REPLICATION SOURCE TO
 START REPLICA;
 SHOW REPLICA STATUS\G
 
+
+To remove
+docker-compose down -v

@@ -2,5 +2,6 @@ docker compose up -d
 
 docker exec yunus.shaikh-pmm-client pmm-admin add mysql --query-source=perfschema --username=root --password=rootpass --host=yunus.shaikh-percona-mysql
 
-
+#####If the mysql is on localhost
+sudo docker exec yunus.shaikh-pmm-client pmm-admin add mysql --username=pmm --password=test1234 --host=172.19.0.1 mysqllocal
 

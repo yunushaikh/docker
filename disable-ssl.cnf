@@ -1,0 +1,4 @@
+[mysqld]
+pxc_encrypt_cluster_traffic = off
+loose-audit_log_filter.format=JSON
+loose-audit_log_filter.strategy=SYNCHRONOUS
