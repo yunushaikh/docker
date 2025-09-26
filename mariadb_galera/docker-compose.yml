@@ -1,0 +1,161 @@
+version: '3.8'
+
+services:
+  galera-node1:
+    image: mariadb:10.11
+    container_name: galera-node1
+    hostname: galera-node1
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: rootpassword
+      MYSQL_DATABASE: testdb
+      MYSQL_USER: testuser
+      MYSQL_PASSWORD: testpass
+      MYSQL_INITDB_SKIP_TZINFO: 1
+    command: >
+      --wsrep-provider=/usr/lib/galera/libgalera_smm.so
+      --wsrep-on=ON
+      --wsrep-cluster-name=galera-cluster
+      --wsrep-cluster-address=gcomm://
+      --wsrep-node-name=galera-node1
+      --wsrep-node-address=galera-node1
+      --wsrep-sst-method=rsync
+      --wsrep-sst-auth=root:rootpassword
+      --binlog-format=ROW
+      --default-storage-engine=InnoDB
+      --innodb-autoinc-lock-mode=2
+      --query-cache-type=0
+      --query-cache-size=0
+      --bind-address=0.0.0.0
+      --max-connections=1000
+      --innodb-buffer-pool-size=128M
+      --innodb-log-file-size=100M
+      --innodb-flush-log-at-trx-commit=2
+      --innodb-flush-method=O_DIRECT
+      --wsrep-sst-donor=galera-node1
+    ports:
+      - "3306:3306"
+    volumes:
+      - mariadb-galera-node1-data:/var/lib/mysql
+      - ./init-scripts:/docker-entrypoint-initdb.d
+    networks:
+      - mariadb-galera-network
+
+  galera-node2:
+    image: mariadb:10.11
+    container_name: galera-node2
+    hostname: galera-node2
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: rootpassword
+      MYSQL_DATABASE: testdb
+      MYSQL_USER: testuser
+      MYSQL_PASSWORD: testpass
+      MYSQL_INITDB_SKIP_TZINFO: 1
+    command: >
+      --wsrep-provider=/usr/lib/galera/libgalera_smm.so
+      --wsrep-on=ON
+      --wsrep-cluster-name=galera-cluster
+      --wsrep-cluster-address=gcomm://galera-node1,galera-node2,galera-node3
+      --wsrep-node-name=galera-node2
+      --wsrep-node-address=galera-node2
+      --wsrep-sst-method=rsync
+      --wsrep-sst-auth=root:rootpassword
+      --binlog-format=ROW
+      --default-storage-engine=InnoDB
+      --innodb-autoinc-lock-mode=2
+      --query-cache-type=0
+      --query-cache-size=0
+      --bind-address=0.0.0.0
+      --max-connections=1000
+      --innodb-buffer-pool-size=128M
+      --innodb-log-file-size=100M
+      --innodb-flush-log-at-trx-commit=2
+      --innodb-flush-method=O_DIRECT
+    ports:
+      - "3307:3306"
+    volumes:
+      - mariadb-galera-node2-data:/var/lib/mysql
+      - ./init-scripts:/docker-entrypoint-initdb.d
+    networks:
+      - mariadb-galera-network
+    depends_on:
+      - galera-node1
+
+  galera-node3:
+    image: mariadb:10.11
+    container_name: galera-node3
+    hostname: galera-node3
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: rootpassword
+      MYSQL_DATABASE: testdb
+      MYSQL_USER: testuser
+      MYSQL_PASSWORD: testpass
+      MYSQL_INITDB_SKIP_TZINFO: 1
+    command: >
+      --wsrep-provider=/usr/lib/galera/libgalera_smm.so
+      --wsrep-on=ON
+      --wsrep-cluster-name=galera-cluster
+      --wsrep-cluster-address=gcomm://galera-node1,galera-node2,galera-node3
+      --wsrep-node-name=galera-node3
+      --wsrep-node-address=galera-node3
+      --wsrep-sst-method=rsync
+      --wsrep-sst-auth=root:rootpassword
+      --binlog-format=ROW
+      --default-storage-engine=InnoDB
+      --innodb-autoinc-lock-mode=2
+      --query-cache-type=0
+      --query-cache-size=0
+      --bind-address=0.0.0.0
+      --max-connections=1000
+      --innodb-buffer-pool-size=128M
+      --innodb-log-file-size=100M
+      --innodb-flush-log-at-trx-commit=2
+      --innodb-flush-method=O_DIRECT
+    ports:
+      - "3308:3306"
+    volumes:
+      - mariadb-galera-node3-data:/var/lib/mysql
+      - ./init-scripts:/docker-entrypoint-initdb.d
+    networks:
+      - mariadb-galera-network
+    depends_on:
+      - galera-node1
+
+  galera-proxy:
+    image: proxysql/proxysql:2.5.5
+    container_name: galera-proxy
+    hostname: galera-proxy
+    restart: unless-stopped
+    ports:
+      - "6033:6033"
+      - "6032:6032"
+    volumes:
+      - ./proxysql.cnf:/etc/proxysql.cnf
+      - ./init-proxysql.sql:/etc/proxysql-init.sql
+      - ./startup-proxysql.sh:/startup-proxysql.sh
+    networks:
+      - mariadb-galera-network
+    depends_on:
+      - galera-node1
+      - galera-node2
+      - galera-node3
+    command: >
+      sh -c "proxysql -f --idle-threads -c /etc/proxysql.cnf &
+      /startup-proxysql.sh"
+
+volumes:
+  mariadb-galera-node1-data:
+    driver: local
+  mariadb-galera-node2-data:
+    driver: local
+  mariadb-galera-node3-data:
+    driver: local
+
+networks:
+  mariadb-galera-network:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.20.0.0/16
