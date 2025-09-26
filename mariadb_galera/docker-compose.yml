@@ -2,33 +2,33 @@ version: '3.8'
 
 services:
   galera-node1:
-    image: mariadb:10.11
+    image: mariadb:${MARIADB_VERSION}
     container_name: galera-node1
     hostname: galera-node1
     restart: unless-stopped
     environment:
-      MYSQL_ROOT_PASSWORD: rootpassword
-      MYSQL_DATABASE: testdb
-      MYSQL_USER: testuser
-      MYSQL_PASSWORD: testpass
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+      MYSQL_DATABASE: ${MYSQL_DATABASE}
+      MYSQL_USER: ${MYSQL_USER}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD}
       MYSQL_INITDB_SKIP_TZINFO: 1
     command: >
       --wsrep-provider=/usr/lib/galera/libgalera_smm.so
       --wsrep-on=ON
-      --wsrep-cluster-name=galera-cluster
+      --wsrep-cluster-name=${GALERA_CLUSTER_NAME}
       --wsrep-cluster-address=gcomm://
       --wsrep-node-name=galera-node1
       --wsrep-node-address=galera-node1
-      --wsrep-sst-method=rsync
-      --wsrep-sst-auth=root:rootpassword
+      --wsrep-sst-method=${GALERA_SST_METHOD}
+      --wsrep-sst-auth=root:${MYSQL_ROOT_PASSWORD}
       --binlog-format=ROW
       --default-storage-engine=InnoDB
       --innodb-autoinc-lock-mode=2
       --query-cache-type=0
       --query-cache-size=0
       --bind-address=0.0.0.0
-      --max-connections=1000
-      --innodb-buffer-pool-size=128M
+      --max-connections=${MAX_CONNECTIONS}
+      --innodb-buffer-pool-size=${INNODB_BUFFER_POOL_SIZE}
       --innodb-log-file-size=100M
       --innodb-flush-log-at-trx-commit=2
       --innodb-flush-method=O_DIRECT
@@ -42,33 +42,33 @@ services:
       - mariadb-galera-network
 
   galera-node2:
-    image: mariadb:10.11
+    image: mariadb:${MARIADB_VERSION}
     container_name: galera-node2
     hostname: galera-node2
     restart: unless-stopped
     environment:
-      MYSQL_ROOT_PASSWORD: rootpassword
-      MYSQL_DATABASE: testdb
-      MYSQL_USER: testuser
-      MYSQL_PASSWORD: testpass
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+      MYSQL_DATABASE: ${MYSQL_DATABASE}
+      MYSQL_USER: ${MYSQL_USER}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD}
       MYSQL_INITDB_SKIP_TZINFO: 1
     command: >
       --wsrep-provider=/usr/lib/galera/libgalera_smm.so
       --wsrep-on=ON
-      --wsrep-cluster-name=galera-cluster
+      --wsrep-cluster-name=${GALERA_CLUSTER_NAME}
       --wsrep-cluster-address=gcomm://galera-node1,galera-node2,galera-node3
       --wsrep-node-name=galera-node2
       --wsrep-node-address=galera-node2
-      --wsrep-sst-method=rsync
-      --wsrep-sst-auth=root:rootpassword
+      --wsrep-sst-method=${GALERA_SST_METHOD}
+      --wsrep-sst-auth=root:${MYSQL_ROOT_PASSWORD}
       --binlog-format=ROW
       --default-storage-engine=InnoDB
       --innodb-autoinc-lock-mode=2
       --query-cache-type=0
       --query-cache-size=0
       --bind-address=0.0.0.0
-      --max-connections=1000
-      --innodb-buffer-pool-size=128M
+      --max-connections=${MAX_CONNECTIONS}
+      --innodb-buffer-pool-size=${INNODB_BUFFER_POOL_SIZE}
       --innodb-log-file-size=100M
       --innodb-flush-log-at-trx-commit=2
       --innodb-flush-method=O_DIRECT
@@ -83,33 +83,33 @@ services:
       - galera-node1
 
   galera-node3:
-    image: mariadb:10.11
+    image: mariadb:${MARIADB_VERSION}
     container_name: galera-node3
     hostname: galera-node3
     restart: unless-stopped
     environment:
-      MYSQL_ROOT_PASSWORD: rootpassword
-      MYSQL_DATABASE: testdb
-      MYSQL_USER: testuser
-      MYSQL_PASSWORD: testpass
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+      MYSQL_DATABASE: ${MYSQL_DATABASE}
+      MYSQL_USER: ${MYSQL_USER}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD}
       MYSQL_INITDB_SKIP_TZINFO: 1
     command: >
       --wsrep-provider=/usr/lib/galera/libgalera_smm.so
       --wsrep-on=ON
-      --wsrep-cluster-name=galera-cluster
+      --wsrep-cluster-name=${GALERA_CLUSTER_NAME}
       --wsrep-cluster-address=gcomm://galera-node1,galera-node2,galera-node3
       --wsrep-node-name=galera-node3
       --wsrep-node-address=galera-node3
-      --wsrep-sst-method=rsync
-      --wsrep-sst-auth=root:rootpassword
+      --wsrep-sst-method=${GALERA_SST_METHOD}
+      --wsrep-sst-auth=root:${MYSQL_ROOT_PASSWORD}
       --binlog-format=ROW
       --default-storage-engine=InnoDB
       --innodb-autoinc-lock-mode=2
       --query-cache-type=0
       --query-cache-size=0
       --bind-address=0.0.0.0
-      --max-connections=1000
-      --innodb-buffer-pool-size=128M
+      --max-connections=${MAX_CONNECTIONS}
+      --innodb-buffer-pool-size=${INNODB_BUFFER_POOL_SIZE}
       --innodb-log-file-size=100M
       --innodb-flush-log-at-trx-commit=2
       --innodb-flush-method=O_DIRECT
@@ -128,6 +128,11 @@ services:
     container_name: galera-proxy
     hostname: galera-proxy
     restart: unless-stopped
+    environment:
+      MARIADB_VERSION: ${MARIADB_VERSION}
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+      MYSQL_USER: ${MYSQL_USER}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD}
     ports:
       - "6033:6033"
       - "6032:6032"
@@ -135,6 +140,7 @@ services:
       - ./proxysql.cnf:/etc/proxysql.cnf
       - ./init-proxysql.sql:/etc/proxysql-init.sql
       - ./startup-proxysql.sh:/startup-proxysql.sh
+      - ./configure-proxysql.sh:/configure-proxysql.sh
     networks:
       - mariadb-galera-network
     depends_on:
@@ -158,4 +164,4 @@ networks:
     driver: bridge
     ipam:
       config:
-        - subnet: 172.20.0.0/16
+        - subnet: ${NETWORK_SUBNET}

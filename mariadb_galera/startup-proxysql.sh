@@ -1,18 +1,29 @@
 #!/bin/bash
 
+# Determine MariaDB client command based on version
+# MariaDB 11.x uses 'mariadb' client, MariaDB 10.x uses 'mysql' client
+MARIADB_VERSION=${MARIADB_VERSION:-10.11}
+if [[ "$MARIADB_VERSION" == 11.* ]]; then
+    MYSQL_CLIENT="mariadb"
+else
+    MYSQL_CLIENT="mysql"
+fi
+
+echo "Using MariaDB version: $MARIADB_VERSION with client: $MYSQL_CLIENT"
+
 # Wait for Galera cluster to be ready
 echo "Waiting for Galera cluster to be ready..."
-until mysql -h galera-node1 -P 3306 -u root -prootpassword -e "SELECT 1" >/dev/null 2>&1; do
+until $MYSQL_CLIENT -h galera-node1 -P 3306 -u root -p${MYSQL_ROOT_PASSWORD} -e "SELECT 1" >/dev/null 2>&1; do
     echo "Waiting for galera-node1..."
     sleep 5
 done
 
-until mysql -h galera-node2 -P 3306 -u root -prootpassword -e "SELECT 1" >/dev/null 2>&1; do
+until $MYSQL_CLIENT -h galera-node2 -P 3306 -u root -p${MYSQL_ROOT_PASSWORD} -e "SELECT 1" >/dev/null 2>&1; do
     echo "Waiting for galera-node2..."
     sleep 5
 done
 
-until mysql -h galera-node3 -P 3306 -u root -prootpassword -e "SELECT 1" >/dev/null 2>&1; do
+until $MYSQL_CLIENT -h galera-node3 -P 3306 -u root -p${MYSQL_ROOT_PASSWORD} -e "SELECT 1" >/dev/null 2>&1; do
     echo "Waiting for galera-node3..."
     sleep 5
 done
@@ -24,7 +35,8 @@ sleep 10
 
 # Configure ProxySQL
 echo "Configuring ProxySQL..."
-mysql -h 127.0.0.1 -P 6032 -u admin -padmin < /etc/proxysql-init.sql
+# Use dynamic configuration script that handles environment variables
+/configure-proxysql.sh
 
 echo "ProxySQL configuration completed!"
 

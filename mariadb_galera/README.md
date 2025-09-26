@@ -13,9 +13,11 @@ This directory contains a **fully automated** Docker Compose setup for a MariaDB
 ## 📁 **Files Included**
 
 - `docker-compose.yml` - Main orchestration file
+- `.env` - Environment variables configuration
 - `proxysql.cnf` - ProxySQL configuration
 - `init-proxysql.sql` - ProxySQL server/user setup
 - `startup-proxysql.sh` - Automated initialization script
+- `change-version.sh` - Script to change MariaDB version
 - `init-scripts/01-init.sql` - Database initialization
 - `README.md` - This documentation
 
@@ -60,13 +62,58 @@ This directory contains a **fully automated** Docker Compose setup for a MariaDB
 - **Automatic configuration** of servers and users
 - **Load balancing** across all Galera nodes
 
-## Configuration
+## ⚙️ **Configuration**
 
-### Environment Variables
+### 🔧 **Environment Variables (.env file)**
+
+All configuration is managed through the `.env` file. You can customize:
+
+- `MARIADB_VERSION`: MariaDB version (11.4, 11.3, 11.2, 11.1, 11.0, 10.11, 10.10, 10.9, 10.8, 10.7, 10.6, 10.5, 10.4, 10.3, 10.2, 10.1)
 - `MYSQL_ROOT_PASSWORD`: Root password for all nodes
 - `MYSQL_DATABASE`: Default database to create
 - `MYSQL_USER`: Default user to create
 - `MYSQL_PASSWORD`: Password for the default user
+- `GALERA_CLUSTER_NAME`: Name of the Galera cluster
+- `GALERA_SST_METHOD`: State Snapshot Transfer method (rsync, mariabackup)
+- `INNODB_BUFFER_POOL_SIZE`: InnoDB buffer pool size
+- `MAX_CONNECTIONS`: Maximum number of connections
+- `NETWORK_SUBNET`: Docker network subnet
+
+### 🚀 **Change MariaDB Version**
+
+**Easy way:**
+```bash
+# Change to MariaDB 11.4 (latest)
+./change-version.sh 11.4
+
+# Change to MariaDB 10.10
+./change-version.sh 10.10
+
+# Apply changes
+docker compose down -v
+docker compose up -d
+```
+
+**Manual way:**
+```bash
+# Edit .env file
+nano .env
+
+# Change MARIADB_VERSION=11.4
+# Then restart
+docker compose down -v
+docker compose up -d
+```
+
+### ⚠️ **MariaDB Version Compatibility**
+
+- **MariaDB 10.x**: Uses `mysql` client command
+- **MariaDB 11.x**: Uses `mariadb` client command  
+- **Galera Support**: Both versions use Galera 4, fully compatible with our setup
+- **Upgrade Path**: You can upgrade from MariaDB 10.x to 11.x directly
+- **Configuration**: All existing configurations work with both versions
+- **Client Detection**: The setup automatically detects the version and uses the correct client
+- **Testing**: Always test version changes in a non-production environment first
 
 ### Galera Configuration
 The cluster is configured with:
